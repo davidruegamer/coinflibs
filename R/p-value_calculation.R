@@ -40,7 +40,7 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
   
 }
 
-
+#' @importFrom msm qtnorm
 ci_tnorm <- function(x, mean, sd, limits, alpha)
 {
   
@@ -49,14 +49,42 @@ ci_tnorm <- function(x, mean, sd, limits, alpha)
   limitX <- which(limits[,2] > x & limits[,1] < x)
   
   denom <- sum(sapply(1:nrow(limits), function(i) pnormstd(limits[i,2]) - pnormstd(limits[i,1])))
-  nomLimitX <- pnormstd(limits[limitX,2]) - pnormstd(limits[limitX,1])
-  thisCov <- nomLimitX / denom
+  massUpper <- pnormstd(limits[limitX,2])
+  massLower <- pnormstd(limits[limitX,1])
+  
+  thisQfun <- function(p) qtnorm(p, mean = mean, sd = sd, 
+                                 lower = limits[limitX, 1],
+                                 upper = limits[limitX, 2])
+  thisCov <- (massUpper - massLower) / denom
   
   ### case discrimination
   
   if(thisCov > 1-alpha){
     
+    lowdef <- massLower > (alpha/2)
+    updef <- massUpper < (1-alpha/2) 
     
+    if(lowdef | updef){
+      
+      if(lowdef){ 
+        
+        lower <- limits[limitX, 1]
+        upper <- thisQfun(p = 1 - alpha + massLower)
+      
+      }else{
+        
+        lower <- thisQfun(p = alpha - (1 - massUpper))
+        upper <- limits[limitX, 2]
+        
+      }
+      
+      return(Intervals(c(lower, upper)))
+      
+    }else{
+      
+      return(Intervals(thisQfun(p = c(alpha/2, 1 - alpha/2))))
+      
+    }
     
   }else{
     
@@ -65,9 +93,6 @@ ci_tnorm <- function(x, mean, sd, limits, alpha)
     return(limits[limitX,])
     
   }
-  
-  
-  
 }
 
 # Adapted from the selectiveInference package

@@ -42,19 +42,32 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
 
 #' Calculate confidence interval for truncated normal variable
 #' 
-#' @param x quantile
 #' @param mean mean
 #' @param sd standard deviation
 #' @param limits \code{Intervals} object containing all limits
 #' @param alpha value specifying the interval coverage, which is \code{(1-alpha)}
 #' 
 #' @examples 
-#' # one restriction
+#' library(intervals)
+#' # one restriction -- in this case equal to a call to \code{\link{msm::qtnorm}}
 #' int1 <- Intervals(c(-3,1))
 #' mean = -0.2
-#' sd = 
+#' sd = 1
+#' ci_tnorm(mean = mean, sd = sd, limits = int1, alpha = 0.05)
+#' 
+#' # two intervals -- 1-alpha coverage not possible
+#' (int2 <- Intervals(matrix(c(-3,-2,-1,1), 
+#'                           ncol = 2, byrow = TRUE)))
+#' ci_tnorm(mean = mean, sd = sd, limits = int2, alpha = 0.05)
+#' 
+#' # two intervals -- 1-alpha coverage possible, but interval not symmetric
+#' (int3 <- Intervals(matrix(c(-3,-2.5,-1.9,1), 
+#'                           ncol = 2, byrow =  TRUE)))
+#' ci_tnorm(mean = mean, sd = sd, limits = int3, alpha = 0.05)
 #' 
 #' @importFrom msm qtnorm
+#' @export
+#' 
 ci_tnorm <- function(mean, sd, limits, alpha)
 {
   
@@ -62,21 +75,28 @@ ci_tnorm <- function(mean, sd, limits, alpha)
   pnormstd <- function(x) pnorm((x - mean)/sd)
   limitX <- which(limits[,2] > mean & limits[,1] < mean)
   
+  limitXa <- limits[limitX,1]
+  massSmallerXa <- if(limitX!=1) 
+    sum(sapply(1:(limitX-1), function(i) 
+      pnormstd(limits[i,2]) - pnormstd(limits[i,1]))) else 0
+  
+  nom <- (massSmallerXa + pnormstd(limitXa))
   denom <- sum(sapply(1:nrow(limits), function(i) pnormstd(limits[i,2]) - pnormstd(limits[i,1])))
-  massUpper <- pnormstd(limits[limitX,2])
-  massLower <- pnormstd(limits[limitX,1])
+
+  massUpper <- (pnormstd(limits[limitX,2]) - nom) / denom
+  massLower <- (nom - pnormstd(limits[limitX,1])) / denom
   
   thisQfun <- function(p) qtnorm(p, mean = mean, sd = sd, 
                                  lower = limits[limitX, 1],
                                  upper = limits[limitX, 2])
-  thisCov <- (massUpper - massLower) / denom
+  thisCov <- massUpper - massLower
   
   ### case discrimination
   
   if(thisCov > 1-alpha){
     
     lowdef <- massLower > (alpha/2)
-    updef <- massUpper < (1-alpha/2) 
+    updef <- thisCov < (1-alpha/2) 
     
     if(lowdef | updef){
       
@@ -103,7 +123,7 @@ ci_tnorm <- function(mean, sd, limits, alpha)
   }else{
     
     warning("Can not create one connected confidence interval with ", 1-alpha, " coverage property.\n", 
-            "Returned interval has ", thisCov, " coverage.")
+            "Returned interval has ", round(thisCov, 4), " coverage.")
     return(limits[limitX,])
     
   }

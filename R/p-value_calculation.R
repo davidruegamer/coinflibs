@@ -40,13 +40,27 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
   
 }
 
+#' Calculate confidence interval for truncated normal variable
+#' 
+#' @param x quantile
+#' @param mean mean
+#' @param sd standard deviation
+#' @param limits \code{Intervals} object containing all limits
+#' @param alpha value specifying the interval coverage, which is \code{(1-alpha)}
+#' 
+#' @examples 
+#' # one restriction
+#' int1 <- Intervals(c(-3,1))
+#' mean = -0.2
+#' sd = 
+#' 
 #' @importFrom msm qtnorm
-ci_tnorm <- function(x, mean, sd, limits, alpha)
+ci_tnorm <- function(mean, sd, limits, alpha)
 {
   
   limits <- limits[order(limits[,1]),]
   pnormstd <- function(x) pnorm((x - mean)/sd)
-  limitX <- which(limits[,2] > x & limits[,1] < x)
+  limitX <- which(limits[,2] > mean & limits[,1] < mean)
   
   denom <- sum(sapply(1:nrow(limits), function(i) pnormstd(limits[i,2]) - pnormstd(limits[i,1])))
   massUpper <- pnormstd(limits[limitX,2])
@@ -128,17 +142,18 @@ bryc_tnorm_surv <- function(z, mean=0, sd=1, a, b) {
   return(p)
 }
 
-#' Calculate p-values after likelihood-based or test-based model selection
+#' Calculate p-values / confidence intervals after likelihood-based or test-based model selection
 #' 
 #' @param limitObject either an object of \code{class} \code{limitObject}, the result of the
 #' \code{\link{calculate_limits}} function, or a \code{list} of \code{limitObject}s
 #' @param y response vector
 #' @param sd standard deviation of error used for the p-value calculation (see details)
+#' @param alpha value for \code{(1-alpha)}-confidence interval construction. Defaults to \code{0.05}.
 #' 
 #' @description This function takes an \code{limitObject}, which is produced by the 
 #' \code{\link{calculate_limits}} (or a list of \code{limitObject}s) and calculates
-#' the selective p-value based on the given limitation and the true residual standard
-#' deviation \code{sd}. Since the true standard deviation is usually unknown in practice
+#' the selective p-value / confidence intervals based on the given limitation and the true 
+#' residual standard deviation \code{sd}. Since the true standard deviation is usually unknown in practice
 #' one can plug in an estimate for the true standard deviation. This approach, however,
 #' strongly depends on the goodness of the estimate and in particular produces unreliable results 
 #' if the number of covariates is relatively large in comparison to the number of observations.
@@ -194,28 +209,28 @@ bryc_tnorm_surv <- function(z, mean=0, sd=1, a, b) {
 #' 
 #' # check restriction on p-values separately
 #' cbind(
-#' calculate_pvals(limitObject = limitsAIC, y = cpus$perf, sd = sigma(cpus.lm2)),
+#' selinf(limitObject = limitsAIC, y = cpus$perf, sd = sigma(cpus.lm2)),
 #' unadjusted_pval = unadj_pvs
-#' )[,c(1,4,2)]
+#' )
 #' 
 #' cbind(
-#' calculate_pvals(limitObject = limitsLRT, y = cpus$perf, sd = sigma(cpus.lm2)),
+#' selinf(limitObject = limitsLRT, y = cpus$perf, sd = sigma(cpus.lm2)),
 #' unadjusted_pval = unadj_pvs
-#' )[,c(1,4,2)]
+#' )
 #' 
 #' # calculate p-values (does automatically combine limitObjects)
-#' res <- calculate_pvals(limitObject = list(limitsAIC, limitsLRT), 
+#' res <- selinf(limitObject = list(limitsAIC, limitsLRT), 
 #'                        y = cpus$perf, 
 #'                        # plugin estimate for true value
 #'                        sd = sigma(cpus.lm2))
 #'                        
-#' cbind(res, unadjusted_pval = unadj_pvs)[,c(1,4,2)]
+#' cbind(res, unadjusted_pval = unadj_pvs)
 #'
 #'
 #' @export
 #' @importFrom stats anova logLik model.matrix pchisq pnorm qf resid
 #'
-calculate_pvals <- function(limitObject, y, sd)
+selinf <- function(limitObject, y, sd, alpha = 0.05)
 {
   
   if(class(limitObject) != "limitObject"){
@@ -226,22 +241,7 @@ calculate_pvals <- function(limitObject, y, sd)
     if(any(sapply(limitObject, class) != "limitObject"))
       stop("limitObject must either be of class 'limitObject' or a list with 'limitObject's")
     
-    names <- unique(c(sapply(limitObject, names)))
-    limitObject <- lapply(names, function(nam){
-      
-      limits <- lapply(limitObject, function(x) x[[nam]])
-
-      vT <- limits[[1]]$vT
-      limits <- do.call("interval_intersection", lapply(limits, "[[", "limits"))
-    
-      if(!any(sapply(1:nrow(limits),function(i) 
-        xinInt(x = as.numeric(vT%*%y), int = limits[i,])))) 
-        stop("Wrong limits. No interval does include the actual value of interest.")
-      
-      return(list(vT = vT, limits = limits))
-      
-    })
-    names(limitObject) <- names
+    limitObject <- combine_limitObjects(limitObject, y = y)
     
   }
   
@@ -252,22 +252,55 @@ calculate_pvals <- function(limitObject, y, sd)
     
     vT <- limitObject[[j]]$vT
     mu <- as.numeric(vT%*%y)
+    this_sd <- sd * sqrt(as.numeric(tcrossprod(vT)))
     
     limits <- limitObject[[j]]$limits
     
     pvals[j] <- mult_tnorm_surv(x = mu, mean = 0, 
-                                sd = sd * sqrt(as.numeric(tcrossprod(vT))),
+                                sd = this_sd,
                                 limits = limits)
-    ests[j] <- vT%*%y
+    
+    int <- ci_tnorm(mean = mu, sd = this_sd, 
+                    limits = limits, alpha = alpha)
+    
+    lowLim[j] <- int[[1]]
+    upLim[j] <- int[[2]]
+    
+    ests[j] <- mu
     
   }
   
   return(
-    data.frame(teststat = ests,
-               pval = pvals,
-               varname = names(limitObject)
+    data.frame(varname = names(limitObject),
+               teststat = ests,
+               lower = lowLim,
+               upper = upLim,
+               pval = pvals
     ))
   
 }
 
 
+combine_limitObjects <- function(listOfLimitObjects, y){
+  
+  names <- unique(c(sapply(listOfLimitObjects, names)))
+  res <- lapply(names, function(nam){
+    
+    limits <- lapply(listOfLimitObjects, function(x) x[[nam]])
+    
+    vT <- limits[[1]]$vT
+
+    limits <- do.call("interval_intersection", lapply(limits, "[[", "limits"))
+    
+    if(!any(sapply(1:nrow(limits),function(i) 
+      xinInt(x = as.numeric(vT%*%y), int = limits[i,])))) 
+      stop("Wrong limits. No interval does include the actual value of interest.")
+    
+    return(list(vT = vT, limits = limits))
+    
+  })
+  names(res) <- names
+  
+  return(res)
+  
+}

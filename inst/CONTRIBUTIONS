@@ -1,0 +1,11 @@
+--------------------------------------------------------------------------------
+          				Contributions
+--------------------------------------------------------------------------------
+
+The code of this package is licenced under GPL-2.
+
+The package "coinflibs" contains modified code from other R packages. 
+
+- selectiveInference:  bryc_tnorm_surv (see R/p-value_calculation.R)
+
+

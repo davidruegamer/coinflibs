@@ -1,5 +1,5 @@
 Package: coinflibs
-Title: COnditional Inference For LIkelihood-Based Selection
+Title: Conditional Inference after Likelihood-based Selection
 Version: 0.0.0.9000
 Encoding: UTF-8
 Type: Package

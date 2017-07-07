@@ -1,5 +1,5 @@
 # coinflibs
-COnditional Inference For LIkelihood-Based Selection
+COnditional Inference after LIkelihood-Based Selection
 
 The package contains functions to calculate limits and conduct inference in a selective manner for linear models after likelihood- or test-based model selection. 
 

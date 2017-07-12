@@ -20,9 +20,31 @@ extract_testvec <- function(limo)
 {
   
   X <- model.matrix(limo)
-  vT <- lapply(1:(ncol(X)), function(j) (solve(crossprod(X))%*%t(X))[j,,drop=F])
-  names(vT) <- colnames(X)
-  return(vT)
+  ass <- limo$assign
+  rlass <- rle(ass)
+  rll <- rlass$lengths
+  rlv <- rlass$values + 1
+  singles <- rlv[rll==1]
+  singlesCol <- (1:ncol(X))[sapply(ass+1, function(i) i %in% singles)]
+  facs <- rlv[rll>1]
+  facsCol <- lapply(facs, function(id) which(ass+1 == id))
+  vT <- lapply(singles, function(j) (solve(crossprod(X))%*%t(X))[j,,drop=F])
+  Pg <- lapply(facsCol, function(j){
+    
+    Xj <- X[,j]
+    Xminusj <- X[,-j]
+    Pminusj <- Xminusj%*%solve(crossprod(Xminusj))%*%t(Xminusj)
+    tildeXj <- (diag(nrow(X)) - Pminusj)%*%Xj
+    
+    tildeXj%*%solve(crossprod(tildeXj))%*%t(tildeXj)
+    
+  })
+  vecs <- c(vT, Pg) 
+  vecs <- vecs[order(c(singles,facs))]
+  nam <- attr(limo$terms, "term.labels")
+  if("(Intercept)"%in%colnames(X)) nam <- c("(Intercept)", nam)
+  names(vecs) <- nam
+  return(vecs)
   
 }
 
@@ -218,7 +240,21 @@ calculate_limits <- function(comps, vTs)
  
   if(!is.list(vTs)) vTs <- list(vTs)
   
-  Pv <- lapply(vTs, function(vt) t(vt)%*%vt / as.numeric(vt%*%t(vt)))
+  Pv <- lapply(vTs, function(vt){
+    
+    if(nrow(vt)==1){ 
+      
+      attr(vt, "type") <- "group"
+      return(vt) 
+      
+    }else{ 
+      
+      r <- t(vt)%*%vt / as.numeric(vt%*%t(vt))
+      attr(r, "type") <- "metric"
+      return(r)
+    }
+  
+  })
   
   nrMods <- length(comps$ps)
   bestInd <- comps$bestInd

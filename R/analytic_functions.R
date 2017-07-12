@@ -1,5 +1,23 @@
 xinInt <- function(x,int) any(int[,2] > x & int[,1] < x)
 
+solveQuadIneq <- function(A, c, Pv, PvO = NULL, y)
+{
+  
+  if(is.null(PvO)) PvO <- diag(length(y)) - Pv
+  alpha <- as.numeric(t(y)%*%Pv%*%A%*%Pv%*%y)
+  beta <- as.numeric(2*t(y)%*%Pv%*%A%*%PvO%*%y)
+  gamma <- as.numeric(t(y)%*%PvO%*%A%*%PvO%*%y + c)
+  
+  det <- beta^2 - 4*alpha*gamma
+  if(det < 0) return(c(-Inf,Inf))
+  
+  sort(c(
+    (-beta - sqrt(det))/(2*alpha),
+    (-beta + sqrt(det))/(2*alpha)
+  ))
+  
+}
+
 solveQuadIneq <- function(A, c, Pv, y)
 {
   
@@ -138,7 +156,18 @@ getBoundsPen <- function(p1 = NULL, p2 = NULL,
   
   # stopifnot(as.numeric(t(y)%*%A%*%y + c)>=0)
   
-  taus <- solveQuadIneq(A=A, c=c, Pv=pv, y=y)
+  if(attr(pv, "type") == "group"){
+    
+    pvo <- (diag(n) - pv)
+    pv <- 
+    
+  }else{
+    
+    pvo <- NULL
+    
+  }
+  
+  taus <- solveQuadIneq(A=A, c=c, Pv=pv, PvO = pvo, y=y)
   
   mu <- as.numeric(vt%*%y)
   

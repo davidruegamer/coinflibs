@@ -4,8 +4,8 @@
 \alias{selinf}
 \title{Calculate p-values / confidence intervals after likelihood-based or test-based model selection}
 \usage{
-selinf(listOfModels, ..., response = NULL, what = c("aic", "bic", "llonly",
-  "lrt", "Ftest"), REML = FALSE, df = 1, sd, alpha = 0.05)
+selinf(listOfModels, ..., response = NULL, what, REML = FALSE, df = 1, sd,
+  alpha = 0.05)
 }
 \arguments{
 \item{listOfModels}{a \code{list} of models representing one comparison}
@@ -15,8 +15,10 @@ selinf(listOfModels, ..., response = NULL, what = c("aic", "bic", "llonly",
 \item{response}{response vector}
 
 \item{what}{\code{character} describing the method, on the basis of which variable selection was performed.
-If different selection procedures have been used, please supply the corresponding character for each
-list of models.}
+Supported variable selection procedures are AIC (\code{"aic"}), BIC (\code{"bic"}), 
+likelihood-based selection (\code{"llonly"}) and significance tests based on the likelihood-ratio 
+or the F-statistic (\code{"lrt"}, \code{"Ftest"}). If different selection procedures have been used, 
+please supply the corresponding character for each list of models.}
 
 \item{REML}{\code{logical}; whether scale estimates should be calculated via \code{REML} or not. Default is
 \code{FALSE} since the log-likelihood is calculated with \code{REML=FALSE} by the \code{logLik} function.}
@@ -33,4 +35,39 @@ This is a wrapper and convenience function for several functions included in thi
 Please see \code{\link{calculate_selinf}} for more details and how to calculate inference when
 several model selection procedures are combined. 
 When more than one list is supplied, the best model in the first \code{listOfModels} is used to perform inference.
+}
+\examples{
+library(MASS)
+data("cpus")
+# Fit initial model
+cpus$perf <- log10(cpus$perf)
+cpus$cach <- as.factor(cpus$cach)
+mod <- lm(perf ~ .-name, data = cpus)
+
+# use the stepAIC function to find the best model in a backward 
+# stepwise search
+cpus.lm <- stepAIC(mod, trace = FALSE, direction = "backward", steps = 3)
+# check model selection
+cpus.lm$anova$Step
+
+# recalculate all visited models in the first step
+lom1 <- c(lapply(attr(mod$terms, "term.labels"), function(x) 
+update(mod, as.formula(paste0("perf ~ .-", x)))), list(mod))
+
+# perform likelihood ratio test at level 
+alpha = 0.001
+
+# check for non-significant variables
+coefTable <- anova(cpus.lm)
+drop <- rownames(coefTable)[alpha < coefTable[-nrow(coefTable),5]]
+
+# drop non-significant variable
+cpus.lm2 <- update(cpus.lm, as.formula(paste0(".~.-",drop)))
+
+# compute selective inference
+selinf(list(cpus.lm, cpus.lm2), lom1, 
+response = cpus$perf,
+what = c("Ftest", "aic"),
+sd = summary(cpus.lm2)$sigma)
+
 }

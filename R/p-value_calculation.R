@@ -40,6 +40,75 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
   
 }
 
+
+############################################################################
+############################################################################
+
+# Functions from selectiveInference package
+# See: https://github.com/selective-inference/R-software/
+#      blob/master/selectiveInference/R/funs.groupfs.R
+
+TC_surv <- function(TC, sigma, df, E) {
+  if (length(E) == 0) {
+    stop("Empty TC support")
+  }
+  
+  # Sum truncated cdf over each part of E
+  denom <- do.call(sum, lapply(1:nrow(E), function(v) {
+    tchi_interval(E[v,1], E[v,2], sigma, df)
+  }))
+  
+  # Sum truncated cdf from observed value to max of
+  # truncation region
+  numer <- do.call(sum, lapply(1:nrow(E), function(v) {
+    lower <- E[v,1]
+    upper <- E[v,2]
+    if (upper > TC) {
+      # Observed value is left of this interval's right endpoint
+      if (lower < TC) {
+        # Observed value is in this interval
+        return(tchi_interval(TC, upper, sigma, df))
+      } else {
+        # Observed value is not in this interval
+        return(tchi_interval(lower, upper, sigma, df))
+      }
+    } else {
+      # Observed value is right of this entire interval
+      return(0)
+    }
+  }))
+  
+  # Survival function
+  value <- numer/denom
+  # Force p-value to lie in the [0,1] interval
+  # in case of numerical issues
+  value <- max(0, min(1, value))
+  value
+}
+
+tchi_interval <- function(lower, upper, sigma, df) {
+  a <- (lower/sigma)^2
+  b <- (upper/sigma)^2
+  if (b == Inf) {
+    integral <- pchisq(a, df, lower.tail = FALSE)
+  } else {
+    integral <- pchisq(b, df) - pchisq(a, df)
+  }
+  if ((integral < .Machine$double.eps) && (b < Inf)) {
+    integral <- num_int_chi(a, b, df)
+  }
+  return(integral)
+}
+
+num_int_chi <- function(a, b, df, nsamp = 10000) {
+  grid <- seq(from=a, to=b, length.out=nsamp)
+  integrand <- dchisq(grid, df)
+  return((b-a)*mean(integrand))
+}
+
+############################################################################
+############################################################################
+
 #' Calculate confidence interval for truncated normal variable
 #' 
 #' @param mean mean
@@ -175,8 +244,8 @@ combine_limitObjects <- function(listOfLimitObjects, y){
 
     limits <- do.call("interval_intersection", lapply(limits, "[[", "limits"))
     
-    if(!any(sapply(1:nrow(limits),function(i) 
-      xinInt(x = as.numeric(vT%*%y), int = limits[i,])))) 
+    if(nrow(vT)==1 && !any(sapply(1:nrow(limits),function(i)
+      xinInt(x = as.numeric(vT%*%y), int = limits[i,]))))
       stop("Wrong limits. No interval does include the actual value of interest.")
     
     return(list(vT = vT, limits = limits))

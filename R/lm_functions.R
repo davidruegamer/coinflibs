@@ -100,7 +100,9 @@ getHatMat <- function(limo = NULL, X = NULL)
 #' @param alpha significance level for selection via likelihood ratio test or significance hunting.
 #' @param df positive integer; defines the degree of freedom when using the likelihood ratio test for model selection.
 #' Defaults to \code{1} (testing one parameter at a time).
-#' @return \code{list} of components for each model
+#' @return \code{list} of components for each model. \code{A} and \code{c}: matrices and scalar of 
+#' affine inequality; \code{y}: response vector; \code{bestInd} indicator for best model in \code{listOfModels}.
+#' 
 #' @examples 
 #' set.seed(42)
 #' y <- rnorm(10)
@@ -110,6 +112,7 @@ getHatMat <- function(limo = NULL, X = NULL)
 #' x2 <- runif(10)
 #' mod2 <- lm(y ~ x2)
 #' 
+#' # AIC comparison
 #' AIC(mod1,mod2)
 #' 
 #' lom <- list(mod1, mod2)
@@ -117,13 +120,15 @@ getHatMat <- function(limo = NULL, X = NULL)
 #' # get components
 #' comps <- extract_components(lom, response = y)
 #' str(comps,1)
+#' t(comps$y)%*%comps$A[[1]]%*%comps$y
+#' 
 #' 
 #' @export
 #' 
 extract_components <- function(listOfModels,
                                response = NULL,
                                what = c("aic", "bic", "llonly", 
-                                        "lrt", "Ftest"),
+                                        "lrt", "Ftest", "sigHunt"),
                                REML = FALSE, alpha = NULL, 
                                df = 1)
 {
@@ -154,7 +159,23 @@ extract_components <- function(listOfModels,
   
   # define number of columns per model
   ps <- sapply(listOfModels, function(x) ncol(model.matrix(x)))
+  ps <- ps*REML # if ML was used, this sets all ps to 0
   
+  # define the A calculation function
+  lb_A <- function(n, p1, p2, pen1, pen2, Px1, Px2){
+    
+    diag(Px1) <- diag(Px1)-1
+    diag(Px2) <- diag(Px2)-1
+    
+    Px1 <- -1*Px1
+    Px2 <- -1*Px2
+    
+    return(
+      (n-p1) * exp( -(p2 - p1 + pen1 - pen2)/n ) * Px2 - (n-p2) * Px1
+    )
+  }
+  
+  # prepare components
   if(what == "aic"){ 
     
     critvals <- do.call("AIC", listOfModels)
@@ -167,27 +188,36 @@ extract_components <- function(listOfModels,
     bestInd <- which.min(critvals$BIC)
     pens <- log(length(y))*critvals$df
     
-  }else if(what == "none"){
+  }else if(what == "llonly"){
     
     critvals <- sapply(listOfModels, logLik)
     bestInd <- which.min(critvals)
-    pens <- rep(0, length(critvals))
     
   }else if(what == "lrt"){
     
-    stopifnot(length(listOfModels)==2)
+    if(length(listOfModels) != 2) stop("Likelihood ratio comparisons only allowed for two competing models.")
+
+    p1 <- ncol(model.matrix(listOfModels[[1]]))
+    p2 <- ncol(model.matrix(listOfModels[[2]]))
+    
+    if(p1 > p2) listOfModels <- rev(listOfModels)
+        
     critvals <- sapply(listOfModels, logLik)
-    
     pens <- c( pchisq(q = 1 - alpha, df = df), 0)
-    
-    # if models are given in the order H_0, H_1
-    # take the negative LR
     bestInd <- as.numeric(-2 * diff(critvals) >= pchisq(q = 1 - alpha, df = df)) + 1
     
-    
+    if(bestInd == 2){
+      
+      # switch components
+      pens <- rev(pens)
+      ps <- rev(pens)
+      modfits <- rev(modfits)
+      
+    }
+     
   }else if(what == "Ftest"){
     
-    stopifnot(length(listOfModels)==2)
+    if(length(listOfModels) != 2) stop("F-test comparisons only allowed for two competing models.")
     
     p1 <- ncol(model.matrix(listOfModels[[1]]))
     p2 <- ncol(model.matrix(listOfModels[[2]]))
@@ -202,21 +232,31 @@ extract_components <- function(listOfModels,
     
     # if models are given in the order H_0, H_1
     # take the negative LR
-    bestInd <- 2 - bestInd
+    notBestInd <- which((1:2)!=bestInd)
     
-    # trick to handle Ftest with the same functions later
-    pens <- c(0,-n*log(1/kappa))
-    modfits[[1]] <- diag(n) + modfits[[2]] - modfits[[1]]
+    A <- list(modfits[[bestInd]] + kappa * (diag(n) - modfits[[notBestInd]]) - modfits[[notBestInd]])
+    
+    if((p1 > p2 & bestInd == 1) | (p1 < p2 & bestInd == 2)) A[[1]] <- -1*A[[1]]
+    
+    
+  }else if(what == "sigHunt"){
+    
+    
     
   }
 
-  # return objects
-  return(list(ps = ps,
-              bestInd = bestInd,
-              modfits = modfits,
-              pens = pens,
-              y = y,
-              REML = REML))
+  if(what != "Ftest"){
+  
+    # calculate the A's
+    A <- lapply((1:length(listOfModels))[-bestInd], function(i)
+      lb_A(n = n, p1 = ps[bestInd], p2 = ps[i], pen1 = pens[bestInd],
+           pen2 = pens[i], Px1 = modfits[[bestInd]], Px2 = modfits[[i]])
+    )
+  
+  }
+  
+  # return object components of inequalities
+  return(list(A = A, c = 0, y = y, bestInd = bestInd))
 
 }
 
@@ -242,7 +282,7 @@ calculate_limits <- function(comps, vTs)
   
   Pv <- lapply(vTs, function(vt){
     
-    if(nrow(vt)==1){ 
+    if(nrow(vt)!=1){ 
       
       attr(vt, "type") <- "group"
       return(vt) 
@@ -256,28 +296,18 @@ calculate_limits <- function(comps, vTs)
   
   })
   
-  nrMods <- length(comps$ps)
-  bestInd <- comps$bestInd
-  notbestInd <- (1:nrMods)[-comps$bestInd]
+  nrMods <- length(comps$A)
   
   res <- lapply(1:length(vTs), function(j){
     
     # for all test vectors (all parameters)
     
     # calculate limits
-    vlims <- lapply(notbestInd, 
-               function(k) 
-                 getBoundsPen(
-                 p1 = comps$ps[bestInd],
-                 p2 = comps$ps[k],
-                 Px1 = comps$modfits[[bestInd]],
-                 Px2 = comps$modfits[[k]],
-                 pen1 = comps$pens[bestInd],
-                 pen2 = comps$pens[k],
-                 pv = Pv[[j]], 
-                 y = comps$y, 
-                 vt=vTs[[j]], 
-                 REML = comps$REML))#)
+    vlims <- lapply(1:nrMods, function(k) getBoundsPen(A = comps$A[[k]],
+                                                       pv = Pv[[j]], 
+                                                       y = comps$y, 
+                                                       vt=vTs[[j]])
+    )
     
     # intersect limits
     limits <- do.call("interval_intersection", lapply(vlims, "[[", "lim"))

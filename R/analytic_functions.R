@@ -18,25 +18,25 @@ solveQuadIneq <- function(A, c, Pv, PvO = NULL, y)
   
 }
 
-solveQuadIneqGen <- function(A, c, gammaj, y)
-{
-  
-  gAg <- as.numeric(t(gammaj)%*%A%*%gammaj)
-  yAy <- as.numeric(t(y)%*%A%*%y)
-  
-  alpha <- -1*gAg
-  beta <- 2*gAg
-  gamma <- yAy - gAg + c
-  
-  det <- beta^2 - 4*alpha*gamma
-  if(det < 0) return(c(-Inf,Inf))
-  
-  sort(c(
-    (-beta - sqrt(det))/(2*alpha),
-    (-beta + sqrt(det))/(2*alpha)
-  ))
-  
-}
+# solveQuadIneqGen <- function(A, c, gammaj, y)
+# {
+#   
+#   gAg <- as.numeric(t(gammaj)%*%A%*%gammaj)
+#   yAy <- as.numeric(t(y)%*%A%*%y)
+#   
+#   alpha <- -1*gAg
+#   beta <- 2*gAg
+#   gamma <- yAy - gAg + c
+#   
+#   det <- beta^2 - 4*alpha*gamma
+#   if(det < 0) return(c(-Inf,Inf))
+#   
+#   sort(c(
+#     (-beta - sqrt(det))/(2*alpha),
+#     (-beta + sqrt(det))/(2*alpha)
+#   ))
+#   
+# }
 
 
 
@@ -104,39 +104,21 @@ solveQuadIneqGen <- function(A, c, gammaj, y)
 
 #' Function to calculation boundaries for given components
 #' 
-#' @param p1,p2 number of parameters in model 1 and 2
+#' @param A restriction matrix in affine inequality
 #' @param Px1,Px2 hat matrix of model 1 and 2
 #' @param pen1,pen2 penalty of model 1 and 2
 #' @param pv projection matrix for test vector
 #' @param y response
 #' @param vt test vector
-#' @param REML logical; whether model variance is estimated using \code{REML}. 
-#' If \code{REML = TRUE}, \code{p1} and \code{p2} must be supplied.
+#' @param c additive value in affine inequality; defaults to 0
 #' 
 #' @importFrom intervals Intervals
 #' 
 #'
-getBoundsPen <- function(p1 = NULL, p2 = NULL,
-                         Px1, Px2, pen1, pen2,
-                         pv, y, vt, REML)
+getBoundsPen <- function(A, pv, y, vt, c = 0)
 {
   
-  
-  if(REML) stopifnot(!is.null(p1) & !is.null(p2)) else{
-    p1 <- 0
-    p2 <- 0
-  }
-  
   n <- length(y)
-  
-  gamma <- p2 - p1 + pen1 - pen2
-  expmcn <- exp(-gamma/n)
-  
-  A <- (n-p2) * (diag(n) - Px1) - (n-p1) * expmcn * (diag(n) - Px2)
-  
-  c <- 0
-  
-  # stopifnot(as.numeric(t(y)%*%A%*%y + c)>=0)
   
   if(attr(pv, "type") == "group"){
     
@@ -152,11 +134,20 @@ getBoundsPen <- function(p1 = NULL, p2 = NULL,
   }
   
   taus <- solveQuadIneq(A=A, c=c, Pv=pv, PvO = pvo, y=y)
-  
-  mu <- as.numeric(vt%*%y)
-  
-  Vlo <- mu*taus[1]
-  Vup <- mu*taus[2]
+
+  if(!is.null(pvo)){ 
+    
+    mu <- TC
+    Vlo <- taus[1]
+    Vup <- taus[2]
+    
+  }else{
+    
+    mu <- as.numeric(vt%*%y)
+    Vlo <- mu*taus[1]
+    Vup <- mu*taus[2]
+    
+  }
   
   stopifnot(length(taus)>0)
   

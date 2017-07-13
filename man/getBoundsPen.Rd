@@ -4,14 +4,10 @@
 \alias{getBoundsPen}
 \title{Function to calculation boundaries for given components}
 \usage{
-getBoundsPen(p1 = NULL, p2 = NULL, Px1, Px2, pen1, pen2, pv, y, vt, REML)
+getBoundsPen(A, pv, y, vt, c = 0)
 }
 \arguments{
-\item{p1, p2}{number of parameters in model 1 and 2}
-
-\item{Px1, Px2}{hat matrix of model 1 and 2}
-
-\item{pen1, pen2}{penalty of model 1 and 2}
+\item{A}{restriction matrix in affine inequality}
 
 \item{pv}{projection matrix for test vector}
 
@@ -19,8 +15,11 @@ getBoundsPen(p1 = NULL, p2 = NULL, Px1, Px2, pen1, pen2, pv, y, vt, REML)
 
 \item{vt}{test vector}
 
-\item{REML}{logical; whether model variance is estimated using \code{REML}. 
-If \code{REML = TRUE}, \code{p1} and \code{p2} must be supplied.}
+\item{c}{additive value in affine inequality; defaults to 0}
+
+\item{Px1, Px2}{hat matrix of model 1 and 2}
+
+\item{pen1, pen2}{penalty of model 1 and 2}
 }
 \description{
 Function to calculation boundaries for given components

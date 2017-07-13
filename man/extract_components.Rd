@@ -5,7 +5,8 @@
 \title{extract components from list of \code{lm} objects}
 \usage{
 extract_components(listOfModels, response = NULL, what = c("aic", "bic",
-  "llonly", "lrt", "Ftest"), REML = FALSE, alpha = NULL, df = 1)
+  "llonly", "lrt", "Ftest", "sigHunt"), REML = FALSE, alpha = NULL,
+  df = 1)
 }
 \arguments{
 \item{listOfModels}{\code{list} of \code{lm} objects}
@@ -23,7 +24,8 @@ extract_components(listOfModels, response = NULL, what = c("aic", "bic",
 Defaults to \code{1} (testing one parameter at a time).}
 }
 \value{
-\code{list} of components for each model
+\code{list} of components for each model. \code{A} and \code{c}: matrices and scalar of 
+affine inequality; \code{y}: response vector; \code{bestInd} indicator for best model in \code{listOfModels}.
 }
 \description{
 extract components from list of \code{lm} objects
@@ -37,6 +39,7 @@ mod1 <- lm(y ~ x)
 x2 <- runif(10)
 mod2 <- lm(y ~ x2)
 
+# AIC comparison
 AIC(mod1,mod2)
 
 lom <- list(mod1, mod2)
@@ -44,5 +47,7 @@ lom <- list(mod1, mod2)
 # get components
 comps <- extract_components(lom, response = y)
 str(comps,1)
+t(comps$y)\%*\%comps$A[[1]]\%*\%comps$y
+
 
 }

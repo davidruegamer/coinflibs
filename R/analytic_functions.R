@@ -18,24 +18,6 @@ solveQuadIneq <- function(A, c, Pv, PvO = NULL, y)
   
 }
 
-solveQuadIneq <- function(A, c, Pv, y)
-{
-  
-  PvO <- diag(length(y)) - Pv
-  alpha <- as.numeric(t(y)%*%Pv%*%A%*%Pv%*%y)
-  beta <- as.numeric(2*t(y)%*%Pv%*%A%*%PvO%*%y)
-  gamma <- as.numeric(t(y)%*%PvO%*%A%*%PvO%*%y + c)
-  
-  det <- beta^2 - 4*alpha*gamma
-  if(det < 0) return(c(-Inf,Inf))
-  
-  sort(c(
-    (-beta - sqrt(det))/(2*alpha),
-    (-beta + sqrt(det))/(2*alpha)
-  ))
-  
-}
-
 solveQuadIneqGen <- function(A, c, gammaj, y)
 {
   
@@ -159,7 +141,9 @@ getBoundsPen <- function(p1 = NULL, p2 = NULL,
   if(attr(pv, "type") == "group"){
     
     pvo <- (diag(n) - pv)
-    pv <- 
+    Ugtilde <- svd(pv)$u
+    TC <- sqrt(sum((t(Ugtilde) %*% y)^2))
+    pv <- pv / TC
     
   }else{
     

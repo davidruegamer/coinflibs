@@ -1,7 +1,7 @@
 #' Calculate p-values / confidence intervals after likelihood-based or test-based model selection
 #' 
-#' @param limitObject either an object of \code{class} \code{limitObject}, the result of the
-#' \code{\link{calculate_limits}} function, or a \code{list} of \code{limitObject}s
+#' @param limitObject either an object of \code{class} \code{limitObject} (the result of the
+#' \code{\link{calculate_limits}} function) or a \code{list} of \code{limitObject}s
 #' @param y response vector
 #' @param sd standard deviation of error used for the p-value calculation (see details)
 #' @param alpha value for \code{(1-alpha)}-confidence interval construction. Defaults to \code{0.05}.
@@ -65,17 +65,17 @@
 #' 
 #' # check restriction on p-values separately
 #' cbind(
-#' selinf(limitObject = limitsAIC, y = cpus$perf, sd = sigma(cpus.lm2)),
+#' calculate_selinf(limitObject = limitsAIC, y = cpus$perf, sd = sigma(cpus.lm2)),
 #' unadjusted_pval = unadj_pvs
 #' )
 #' 
 #' cbind(
-#' selinf(limitObject = limitsLRT, y = cpus$perf, sd = sigma(cpus.lm2)),
+#' calculate_selinf(limitObject = limitsLRT, y = cpus$perf, sd = sigma(cpus.lm2)),
 #' unadjusted_pval = unadj_pvs
 #' )
 #' 
 #' # calculate p-values (does automatically combine limitObjects)
-#' res <- selinf(limitObject = list(limitsAIC, limitsLRT), 
+#' res <- calculate_selinf(limitObject = list(limitsAIC, limitsLRT), 
 #'                        y = cpus$perf, 
 #'                        # plugin estimate for true value
 #'                        sd = sigma(cpus.lm2))
@@ -86,7 +86,7 @@
 #' @export
 #' @importFrom stats anova logLik model.matrix pchisq pnorm qf resid
 #'
-selinf <- function(limitObject, y, sd, alpha = 0.05)
+calculate_selinf <- function(limitObject, y, sd, alpha = 0.05)
 {
   
   if(class(limitObject) != "limitObject"){
@@ -139,19 +139,31 @@ selinf <- function(limitObject, y, sd, alpha = 0.05)
 
 #' Calculate p-values / confidence intervals after likelihood-based or test-based model selection
 #' 
-#' @param listOfModels either an object of \code{class} \code{limitObject}, the result of the
-#' \code{\link{calculate_limits}} function, or a \code{list} of \code{limitObject}s
-#' @param y response vector
+#' @param listOfModels a \code{list} of models representing one comparison
+#' @param ... optionally more \code{list}s of models representing further comparisons
+#' @param response response vector
+#' @param what \code{character} describing the method, on the basis of which variable selection was performed.
+#' If different selection procedures have been used, please supply the corresponding character for each
+#' list of models.
+#' @param REML \code{logical}; whether scale estimates should be calculated via \code{REML} or not. Default is
+#' \code{FALSE} since the log-likelihood is calculated with \code{REML=FALSE} by the \code{logLik} function.
+#' @param df positive integer; defines the degree of freedom when using the likelihood ratio test for model selection.
+#' Defaults to \code{1} (testing one parameter at a time).
 #' @param sd standard deviation of error used for the p-value calculation (see details)
 #' @param alpha value for \code{(1-alpha)}-confidence interval construction. Defaults to \code{0.05}.
 #' 
-#' @description Wrapper for selinf. See \code{\link{selinf.limitObject}} for more details.
+#' @description This is a wrapper and convenience function for several functions included in this package. 
+#' Please see \code{\link{calculate_selinf}} for more details and how to calculate inference when
+#' several model selection procedures are combined. 
+#' When more than one list is supplied, the best model in the first \code{listOfModels} is used to perform inference.
+#' 
 #' 
 #'
 #' @export
 #' @importFrom stats anova logLik model.matrix pchisq pnorm qf resid
 #'
-selinf_wrapper <- function(listOfModels, response = NULL, 
+selinf <- function(listOfModels, ...,
+                           response = NULL, 
                            what = c("aic", "bic", "llonly", 
                                     "lrt", "Ftest"), 
                            REML = FALSE, df = 1, 
@@ -160,15 +172,52 @@ selinf_wrapper <- function(listOfModels, response = NULL,
   
   stopifnot(is.list(listOfModels))
   what <- match.arg(what)
+  if(!missing(...))
+  {
+    
+    vTs <- extract_testvec(listOfModels[[comps$bestInd]])
+    
+    ll <- list(listOfModels, ...)
+    if(length(what)>1){
+      if(length(what)!=length(ll))
+      {
+        
+        stop(paste0("If 'what' is different for each list of models, ",
+                    "it must be a vector of the same length as supplied lists.")
+        )
+        
+      }else{
+        
+        what <- rep(what, length(ll))
+      
+      }
+    }
+    
+    limits <- lapply(1:length(ll), function(i){
+      
+      listItem <- ll[[i]]
+      
+      comps <- extract_components(listOfModels = listItem,
+                                  response = response,
+                                  what = what[[i]], REML = REML, 
+                                  alpha = alpha, df = df)
+      
+      calculate_limits(comps, vTs)
+      
+    })
+    
+  }else{
   
-  comps <- extract_components(listOfModels = listOfModels,
-                              response = response,
-                              what = what, REML = REML, 
-                              alpha = alpha, df =df)
+    comps <- extract_components(listOfModels = listOfModels,
+                                response = response,
+                                what = what, REML = REML, 
+                                alpha = alpha, df = df)
+    
+    vTs <- extract_testvec(listOfModels[[comps$bestInd]])
+    limits <- calculate_limits(comps, vTs)
+    
+  }
   
-  vTs <- extract_testvec(listOfModels[[comps$bestInd]])
-  limits <- calculate_limits(comps, vTs)
-  
-  selinf(limitObject = limits, y = response, sd = sd, alpha = alpha)
+  calculate_selinf(limitObject = limits, y = response, sd = sd, alpha = alpha)
   
 }

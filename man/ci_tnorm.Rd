@@ -28,12 +28,12 @@ ci_tnorm(mean = mean, sd = sd, limits = int1, alpha = 0.05)
 
 # two intervals -- 1-alpha coverage not possible
 (int2 <- Intervals(matrix(c(-3,-2,-1,1), 
-                          ncol=2, byrow=TRUE)))
+                          ncol = 2, byrow = TRUE)))
 ci_tnorm(mean = mean, sd = sd, limits = int2, alpha = 0.05)
 
 # two intervals -- 1-alpha coverage possible, but interval not symmetric
 (int3 <- Intervals(matrix(c(-3,-2.5,-1.9,1), 
-                          ncol=2, byrow=TRUE)))
+                          ncol = 2, byrow =  TRUE)))
 ci_tnorm(mean = mean, sd = sd, limits = int3, alpha = 0.05)
 
 }

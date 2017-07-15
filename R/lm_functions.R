@@ -28,7 +28,7 @@ extract_testvec <- function(limo)
   singlesCol <- (1:ncol(X))[sapply(ass+1, function(i) i %in% singles)]
   facs <- rlv[rll>1]
   facsCol <- lapply(facs, function(id) which(ass+1 == id))
-  vT <- lapply(singles, function(j) (solve(crossprod(X))%*%t(X))[j,,drop=F])
+  vT <- lapply(singlesCol, function(j) (solve(crossprod(X))%*%t(X))[j,,drop=F])
   Pg <- lapply(facsCol, function(j){
     
     Xj <- X[,j]

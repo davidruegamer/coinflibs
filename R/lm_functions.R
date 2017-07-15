@@ -309,11 +309,14 @@ calculate_limits <- function(comps, vTs)
                                                        vt=vTs[[j]])
     )
     
-    # intersect limits
-    limits <- do.call("interval_intersection", lapply(vlims, "[[", "lim"))
+    if(attr(Pv[[j]], "type") == "metric"){
     
-    if(attr(Pv[[j]], "type") == "group"){
+      # intersect limits
+      limits <- do.call("interval_intersection", lapply(vlims, "[[", "lim"))
+    
+    }else{ ## (attr(Pv[[j]], "type") == "group")
       
+      limits <- do.call("interval_union", lapply(vlims, "[[", "lim"))
       limits <- interval_union(limits, Intervals(c(-Inf,0)))
       limits <- interval_complement(limits, check_valid = FALSE)
       

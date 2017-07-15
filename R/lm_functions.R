@@ -271,7 +271,7 @@ extract_components <- function(listOfModels,
 #' test vector and does contain \code{vT}, the test vector, and \code{limits}, 
 #' an \code{Intervals} object for the calculated limits
 #'
-#' @importFrom intervals interval_intersection
+#' @importFrom intervals interval_intersection interval_union interval_complement
 #' @export
 #'
 calculate_limits <- function(comps, vTs)
@@ -311,6 +311,13 @@ calculate_limits <- function(comps, vTs)
     
     # intersect limits
     limits <- do.call("interval_intersection", lapply(vlims, "[[", "lim"))
+    
+    if(attr(Pv[[j]], "type") == "group"){
+      
+      limits <- interval_union(limits, Intervals(c(-Inf,0)))
+      limits <- interval_complement(limits, check_valid = FALSE)
+      
+    }
     
     return(
       list(vT = vTs[[j]], 

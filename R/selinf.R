@@ -121,7 +121,7 @@ calculate_selinf <- function(limitObject, y, sd, alpha = 0.05)
                                   sd = this_sd,
                                   limits = limits)
       
-      int <- ci_tnorm(mean = mu, sd = this_sd, 
+      int <- ci_tnorm(meanEst = mu, sd = this_sd, 
                       limits = limits, alpha = alpha)
       
       lowLim[j] <- int[[1]]

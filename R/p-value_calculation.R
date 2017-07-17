@@ -29,7 +29,7 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
   
   this_pval <- nom / denom
   
-  if((is.na(this_pval) | is.nan(this_pval)) & !lower)
+  if(all(is.na(this_pval) | is.nan(this_pval)) & !lower)
     this_pval <- bryc_tnorm_surv(z = x, sd = sd, 
                                  a = limits[limitX,1], 
                                  b = limits[limitX,2])
@@ -137,65 +137,81 @@ num_int_chi <- function(a, b, df, nsamp = 10000) {
 #' @importFrom msm qtnorm
 #' @export
 #' 
-ci_tnorm <- function(mean, sd, limits, alpha)
+ci_tnorm <- function(meanEst, sd, limits, alpha, gridpts=200, griddepth=3)
 {
   
-  limits <- limits[order(limits[,1]),]
-  pnormstd <- function(x) pnorm((x - mean)/sd)
-  limitX <- which(limits[,2] > mean & limits[,1] < mean)
+  # limits <- limits[order(limits[,1]),]
+  # pnormstd <- function(x) pnorm((x - meanEst)/sd)
+  # limitX <- which(limits[,2] > meanEst & limits[,1] < meanEst)
+  # 
+  # limitXa <- limits[limitX,1]
+  # massSmallerXa <- if(limitX!=1) 
+  #   sum(sapply(1:(limitX-1), function(i) 
+  #     pnormstd(limits[i,2]) - pnormstd(limits[i,1]))) else 0
+  # 
+  # nom <- (massSmallerXa + pnormstd(limitXa))
+  # denom <- sum(sapply(1:nrow(limits), function(i) 
+  #   pnormstd(limits[i,2]) - pnormstd(limits[i,1])))
+  # 
+  # massUpper <- (pnormstd(limits[limitX,2]) - nom) / denom
+  # massLower <- (nom - pnormstd(limits[limitX,1])) / denom
+  # 
+  # thisQfun <- function(p) qtnorm(p, mean = meanH0, sd = sd, 
+  #                                lower = limits[limitX, 1],
+  #                                upper = limits[limitX, 2])
+  # thisCov <- massUpper - massLower
+  # 
+  # ### case discrimination
+  # 
+  # if(thisCov > 1-alpha){
+  #   
+  #   lowdef <- massLower > (alpha/2)
+  #   updef <- thisCov < (1-alpha/2) 
+  #   
+  #   if(lowdef | updef){
+  #     
+  #     if(lowdef){ 
+  #       
+  #       lower <- limits[limitX, 1]
+  #       upper <- thisQfun(p = 1 - alpha + massLower)
+  #     
+  #     }else{
+  #       
+  #       lower <- thisQfun(p = alpha - (1 - massUpper))
+  #       upper <- limits[limitX, 2]
+  #       
+  #     }
+  #     
+  #     return(Intervals(c(lower, upper)))
+  #     
+  #   }else{
+      
+      # grid search adapted from the selectiveInference package
   
-  limitXa <- limits[limitX,1]
-  massSmallerXa <- if(limitX!=1) 
-    sum(sapply(1:(limitX-1), function(i) 
-      pnormstd(limits[i,2]) - pnormstd(limits[i,1]))) else 0
+  limitsX <- which(limits[,2] > meanEst & limits[,1] < meanEst)
   
-  nom <- (massSmallerXa + pnormstd(limitXa))
-  denom <- sum(sapply(1:nrow(limits), function(i) pnormstd(limits[i,2]) - pnormstd(limits[i,1])))
-
-  massUpper <- (pnormstd(limits[limitX,2]) - nom) / denom
-  massLower <- (nom - pnormstd(limits[limitX,1])) / denom
+  xg = seq(-100*sd, 100*sd, length = gridpts)
+  fun = function(x) { 
+    selectiveInference:::tnorm.surv(z = meanEst, mean = x, sd = sd, 
+                                    a = limits[limitsX, 1],
+                                    b = limits[limitsX, 2]) }
   
-  thisQfun <- function(p) qtnorm(p, mean = mean, sd = sd, 
-                                 lower = limits[limitX, 1],
-                                 upper = limits[limitX, 2])
-  thisCov <- massUpper - massLower
+  int = selectiveInference:::grid.search(xg, fun, alpha/2, 1-alpha/2, 
+                                         gridpts, griddepth)
   
-  ### case discrimination
+  # if(sign(meanEst)==-1) int <- -1*rev(int)
   
-  if(thisCov > 1-alpha){
-    
-    lowdef <- massLower > (alpha/2)
-    updef <- thisCov < (1-alpha/2) 
-    
-    if(lowdef | updef){
+  return(Intervals(int))
       
-      if(lowdef){ 
-        
-        lower <- limits[limitX, 1]
-        upper <- thisQfun(p = 1 - alpha + massLower)
-      
-      }else{
-        
-        lower <- thisQfun(p = alpha - (1 - massUpper))
-        upper <- limits[limitX, 2]
-        
-      }
-      
-      return(Intervals(c(lower, upper)))
-      
-    }else{
-      
-      return(Intervals(thisQfun(p = c(alpha/2, 1 - alpha/2))))
-      
-    }
-    
-  }else{
-    
-    warning("Can not create one connected confidence interval with ", 1-alpha, " coverage property.\n", 
-            "Returned interval has ", round(thisCov, 4), " coverage.")
-    return(limits[limitX,])
-    
-  }
+  #   }
+  #   
+  # }else{
+  #   
+  #   warning("Can not create one connected confidence interval with ", 1-alpha, " coverage property.\n", 
+  #           "Returned interval has ", round(thisCov, 4), " coverage.")
+  #   return(limits[limitX,])
+  #   
+  # }
 }
 
 # Adapted from the selectiveInference package

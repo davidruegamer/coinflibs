@@ -76,12 +76,14 @@ limitsLRT <- calculate_limits(compsLRT, vTs)
 
 # check restriction on p-values separately
 cbind(
-calculate_selinf(limitObject = limitsAIC, y = cpus$perf, sd = sigma(cpus.lm2)),
+calculate_selinf(limitObject = limitsAIC, y = cpus$perf, 
+sd = summary(cpus.lm2)$sigma),
 unadjusted_pval = unadj_pvs
 )
 
 cbind(
-calculate_selinf(limitObject = limitsLRT, y = cpus$perf, sd = sigma(cpus.lm2)),
+calculate_selinf(limitObject = limitsLRT, y = cpus$perf, 
+sd = summary(cpus.lm2)$sigma),
 unadjusted_pval = unadj_pvs
 )
 
@@ -89,7 +91,7 @@ unadjusted_pval = unadj_pvs
 res <- calculate_selinf(limitObject = list(limitsAIC, limitsLRT), 
                        y = cpus$perf, 
                        # plugin estimate for true value
-                       sd = sigma(cpus.lm2))
+                       sd = summary(cpus.lm2)$sigma)
                        
 cbind(res, unadjusted_pval = unadj_pvs)
 

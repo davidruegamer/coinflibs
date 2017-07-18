@@ -105,9 +105,7 @@ solveQuadIneq <- function(A, c, Pv, PvO = NULL, y)
 #' Function to calculation boundaries for given components
 #' 
 #' @param A restriction matrix in affine inequality
-#' @param Px1,Px2 hat matrix of model 1 and 2
-#' @param pen1,pen2 penalty of model 1 and 2
-#' @param pv projection matrix for test vector
+#' @param pv projection matrix for test vector or its left singular values for group variables
 #' @param y response
 #' @param vt test vector
 #' @param c additive value in affine inequality; defaults to 0

@@ -9,17 +9,13 @@ getBoundsPen(A, pv, y, vt, c = 0)
 \arguments{
 \item{A}{restriction matrix in affine inequality}
 
-\item{pv}{projection matrix for test vector}
+\item{pv}{projection matrix for test vector or its left singular values for group variables}
 
 \item{y}{response}
 
 \item{vt}{test vector}
 
 \item{c}{additive value in affine inequality; defaults to 0}
-
-\item{Px1, Px2}{hat matrix of model 1 and 2}
-
-\item{pen1, pen2}{penalty of model 1 and 2}
 }
 \description{
 Function to calculation boundaries for given components

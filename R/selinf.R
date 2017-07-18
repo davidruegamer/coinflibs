@@ -180,7 +180,7 @@ calculate_selinf <- function(limitObject, y, sd, alpha = 0.05)
 #' 
 #'
 #' @export
-#' @importFrom stats anova logLik model.matrix pchisq pnorm qf resid
+#' @importFrom stats anova logLik model.matrix pchisq pnorm qf resid dchisq
 #' @examples 
 #' library(MASS)
 #' data("cpus")

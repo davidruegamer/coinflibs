@@ -4,16 +4,19 @@
 \alias{ci_tnorm}
 \title{Calculate confidence interval for truncated normal variable}
 \usage{
-ci_tnorm(mean, sd, limits, alpha)
+ci_tnorm(meanEst, sd, limits, alpha, gridpts = 200, griddepth = 3)
 }
 \arguments{
-\item{mean}{mean}
+\item{meanEst}{mean}
 
 \item{sd}{standard deviation}
 
 \item{limits}{\code{Intervals} object containing all limits}
 
 \item{alpha}{value specifying the interval coverage, which is \code{(1-alpha)}}
+
+\item{gridpts, griddepth}{parameters for grid search used in the confidence interval
+function of the package \code{selectiveInference}.}
 }
 \description{
 Calculate confidence interval for truncated normal variable
@@ -24,16 +27,16 @@ library(intervals)
 int1 <- Intervals(c(-3,1))
 mean = -0.2
 sd = 1
-ci_tnorm(mean = mean, sd = sd, limits = int1, alpha = 0.05)
+ci_tnorm(meanEst = mean, sd = sd, limits = int1, alpha = 0.05)
 
 # two intervals -- 1-alpha coverage not possible
 (int2 <- Intervals(matrix(c(-3,-2,-1,1), 
                           ncol = 2, byrow = TRUE)))
-ci_tnorm(mean = mean, sd = sd, limits = int2, alpha = 0.05)
+ci_tnorm(meanEst = mean, sd = sd, limits = int2, alpha = 0.05)
 
 # two intervals -- 1-alpha coverage possible, but interval not symmetric
 (int3 <- Intervals(matrix(c(-3,-2.5,-1.9,1), 
                           ncol = 2, byrow =  TRUE)))
-ci_tnorm(mean = mean, sd = sd, limits = int3, alpha = 0.05)
+ci_tnorm(meanEst = mean, sd = sd, limits = int3, alpha = 0.05)
 
 }

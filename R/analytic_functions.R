@@ -122,10 +122,13 @@ getBoundsPen <- function(A, pv, y, vt, c = 0)
   
   if(attr(pv, "type") == "group"){
     
-    pvo <- (diag(n) - pv)
     Ugtilde <- svd(pv)$u
-    TC <- sqrt(sum((t(Ugtilde) %*% y)^2))
+    pv <- tcrossprod(Ugtilde)
+    pvo <- diag(n) - pv
+    R <- t(Ugtilde) %*% y
+    TC <- sqrt(sum(R^2))
     pv <- pv / TC
+    
     
   }else{
     
@@ -133,7 +136,7 @@ getBoundsPen <- function(A, pv, y, vt, c = 0)
     
   }
   
-  taus <- solveQuadIneq(A=A, c=c, Pv=pv, PvO = pvo, y=y)
+  taus <- solveQuadIneq(A = A, c = c, Pv = pv, PvO = pvo, y = y)
 
   if(!is.null(pvo)){ 
     

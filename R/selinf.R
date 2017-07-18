@@ -132,9 +132,10 @@ calculate_selinf <- function(limitObject, y, sd, alpha = 0.05)
     }else{
   
       Ugtilde <- svd(vT)$u
+      R <- t(Ugtilde) %*% y
       
       lowLim[j] <- upLim[j] <- NA # tbd
-      ests[j] <- sqrt(sum((t(Ugtilde) %*% y)^2))
+      ests[j] <- sqrt(sum(R^2))
       
       pvals[j] <- TC_surv(TC = ests[j], sigma = sd, 
                           df = ncol(vT), E = limits)

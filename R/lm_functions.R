@@ -31,12 +31,9 @@ extract_testvec <- function(limo)
   vT <- lapply(singlesCol, function(j) (solve(crossprod(X))%*%t(X))[j,,drop=F])
   Pg <- lapply(facsCol, function(j){
     
-    Xj <- X[,j]
-    Xminusj <- X[,-j]
-    Pminusj <- Xminusj%*%solve(crossprod(Xminusj))%*%t(Xminusj)
-    tildeXj <- (diag(nrow(X)) - Pminusj)%*%Xj
-    
-    tildeXj%*%solve(crossprod(tildeXj))%*%t(tildeXj)
+    Xj <- X[, j]
+    Xminusj <- svd(X[, -j, drop=FALSE])$u
+    Xj - tcrossprod(Xminusj) %*% Xj
     
   })
   vecs <- c(vT, Pg) 
@@ -316,9 +313,16 @@ calculate_limits <- function(comps, vTs)
     
     }else{ ## (attr(Pv[[j]], "type") == "group")
       
-      limits <- do.call("interval_union", lapply(vlims, "[[", "lim"))
-      limits <- interval_union(limits, Intervals(c(-Inf,0)))
-      limits <- interval_complement(limits, check_valid = FALSE)
+      # vlims <- vlims[!sapply(vlims, function(li) nrow(li$lim)==1 &
+      #                         li$lim[[1]]==-Inf &
+      #                         li$lim[[2]]==Inf)]
+      # limits <- do.call("interval_union", lapply(vlims, "[[", "lim"))
+      # limits <- interval_union(limits, Intervals(c(-Inf,0)))
+      # limits <- interval_complement(limits, check_valid = FALSE)
+      
+      lims <- lapply(vlims,"[[","lim")
+      limits <- do.call("interval_intersection", 
+                        lapply(lims, function(ii) interval_intersection(ii, Intervals(c(0, Inf)))))
       
     }
     

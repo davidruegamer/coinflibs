@@ -29,14 +29,14 @@ extract_testvec <- function(limo)
   facs <- rlv[rll>1]
   facsCol <- lapply(facs, function(id) which(ass+1 == id))
   vT <- lapply(singlesCol, function(j) (solve(crossprod(X))%*%t(X))[j,,drop=F])
-  Pg <- lapply(facsCol, function(j){
+  Xgtilde <- lapply(facsCol, function(j){
     
     Xj <- X[, j]
     Xminusj <- svd(X[, -j, drop=FALSE])$u
     Xj - tcrossprod(Xminusj) %*% Xj
     
   })
-  vecs <- c(vT, Pg) 
+  vecs <- c(vT, Xgtilde) 
   vecs <- vecs[order(c(singles,facs))]
   nam <- attr(limo$terms, "term.labels")
   if("(Intercept)"%in%colnames(X)) nam <- c("(Intercept)", nam)
@@ -337,5 +337,29 @@ calculate_limits <- function(comps, vTs)
   class(res) <- "limitObject"
   return(res)
   
+  
+}
+
+combine_limitObjects <- function(listOfLimitObjects, y){
+  
+  names <- unique(c(sapply(listOfLimitObjects, names)))
+  res <- lapply(names, function(nam){
+    
+    limits <- lapply(listOfLimitObjects, function(x) x[[nam]])
+    
+    vT <- limits[[1]]$vT
+    
+    limits <- do.call("interval_intersection", lapply(limits, "[[", "limits"))
+    
+    if(nrow(vT)==1 && !any(sapply(1:nrow(limits),function(i)
+      xinInt(x = as.numeric(vT%*%y), int = limits[i,]))))
+      stop("Wrong limits. No interval does include the actual value of interest.")
+    
+    return(list(vT = vT, limits = limits))
+    
+  })
+  names(res) <- names
+  
+  return(res)
   
 }

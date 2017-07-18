@@ -8,12 +8,12 @@ solveQuadIneq <- function(A, c, Pv, PvO = NULL, y)
   beta <- as.numeric(2*t(y)%*%Pv%*%A%*%PvO%*%y)
   gamma <- as.numeric(t(y)%*%PvO%*%A%*%PvO%*%y + c)
   
-  det <- beta^2 - 4*alpha*gamma
-  if(det < 0) return(c(-Inf,Inf))
+  dis <- beta^2 - 4*alpha*gamma
+  if(dis < 0) return(c(-Inf,Inf))
   
   sort(c(
-    (-beta - sqrt(det))/(2*alpha),
-    (-beta + sqrt(det))/(2*alpha)
+    (-beta - sqrt(dis))/(2*alpha),
+    (-beta + sqrt(dis))/(2*alpha)
   ))
   
 }

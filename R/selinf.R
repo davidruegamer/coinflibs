@@ -138,7 +138,7 @@ calculate_selinf <- function(limitObject, y, sd, alpha = 0.05)
       ests[j] <- sqrt(sum(R^2))
       
       pvals[j] <- TC_surv(TC = ests[j], sigma = sd, 
-                          df = ncol(vT), E = limits)
+                          df = ncol(Ugtilde), E = limits)
       
       
     } 

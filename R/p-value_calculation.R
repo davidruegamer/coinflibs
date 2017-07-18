@@ -147,28 +147,3 @@ ci_tnorm <- function(meanEst, sd, limits, alpha, gridpts=200, griddepth=3)
   #   
   # }
 }
-
-
-combine_limitObjects <- function(listOfLimitObjects, y){
-  
-  names <- unique(c(sapply(listOfLimitObjects, names)))
-  res <- lapply(names, function(nam){
-    
-    limits <- lapply(listOfLimitObjects, function(x) x[[nam]])
-    
-    vT <- limits[[1]]$vT
-
-    limits <- do.call("interval_intersection", lapply(limits, "[[", "limits"))
-    
-    if(nrow(vT)==1 && !any(sapply(1:nrow(limits),function(i)
-      xinInt(x = as.numeric(vT%*%y), int = limits[i,]))))
-      stop("Wrong limits. No interval does include the actual value of interest.")
-    
-    return(list(vT = vT, limits = limits))
-    
-  })
-  names(res) <- names
-  
-  return(res)
-  
-}

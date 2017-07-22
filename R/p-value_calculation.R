@@ -5,7 +5,8 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
   pnormstd <- function(x) pnorm((x - mean)/sd)
   limitX <- which(limits[,2] > x & limits[,1] < x)
   
-  denom <- sum(sapply(1:nrow(limits), function(i) pnormstd(limits[i,2]) - pnormstd(limits[i,1])))
+  denom <- sapply(1:nrow(limits), function(i) pnormstd(limits[i,2]) - pnormstd(limits[i,1]))
+  if(!is.null(dim(denom))) denom <- apply(denom, 1, sum)
   
   if(lower){
     
@@ -28,13 +29,15 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
   }
   
   this_pval <- nom / denom
+  this_pval[is.nan(this_pval) & mean < x] <- 0
+  this_pval[is.nan(this_pval) & mean > x] <- 1
   
   if(all(is.na(this_pval) | is.nan(this_pval)) & !lower)
     this_pval <- bryc.tnorm.surv(z = x, sd = sd, 
                                  a = limits[limitX,1], 
                                  b = limits[limitX,2])
   
-  if(twosided) this_pval <- 2*min(c(this_pval, 1-this_pval))
+  if(twosided) this_pval <- sapply(this_pval, function(x) 2*min(c(x, 1-x)))
   
   return(this_pval)
   
@@ -49,6 +52,7 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
 #' @param alpha value specifying the interval coverage, which is \code{(1-alpha)}
 #' @param gridpts,griddepth parameters for grid search used in the confidence interval
 #' function of the package \code{selectiveInference}.
+#' @param range gives the range \code{range*sd}, in which the quantile values are searched
 #' 
 #' @examples 
 #' library(intervals)
@@ -71,79 +75,34 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
 #' @importFrom msm qtnorm
 #' @export
 #' 
-ci_tnorm <- function(meanEst, sd, limits, alpha, gridpts=200, griddepth=3)
+ci_tnorm <- function(meanEst, sd, limits, alpha, gridpts = 500, griddepth = 3, range = 100)
 {
   
-  # limits <- limits[order(limits[,1]),]
-  # pnormstd <- function(x) pnorm((x - meanEst)/sd)
-  # limitX <- which(limits[,2] > meanEst & limits[,1] < meanEst)
-  # 
-  # limitXa <- limits[limitX,1]
-  # massSmallerXa <- if(limitX!=1) 
-  #   sum(sapply(1:(limitX-1), function(i) 
-  #     pnormstd(limits[i,2]) - pnormstd(limits[i,1]))) else 0
-  # 
-  # nom <- (massSmallerXa + pnormstd(limitXa))
-  # denom <- sum(sapply(1:nrow(limits), function(i) 
-  #   pnormstd(limits[i,2]) - pnormstd(limits[i,1])))
-  # 
-  # massUpper <- (pnormstd(limits[limitX,2]) - nom) / denom
-  # massLower <- (nom - pnormstd(limits[limitX,1])) / denom
-  # 
-  # thisQfun <- function(p) qtnorm(p, mean = meanH0, sd = sd, 
-  #                                lower = limits[limitX, 1],
-  #                                upper = limits[limitX, 2])
-  # thisCov <- massUpper - massLower
-  # 
-  # ### case discrimination
-  # 
-  # if(thisCov > 1-alpha){
-  #   
-  #   lowdef <- massLower > (alpha/2)
-  #   updef <- thisCov < (1-alpha/2) 
-  #   
-  #   if(lowdef | updef){
-  #     
-  #     if(lowdef){ 
-  #       
-  #       lower <- limits[limitX, 1]
-  #       upper <- thisQfun(p = 1 - alpha + massLower)
-  #     
-  #     }else{
-  #       
-  #       lower <- thisQfun(p = alpha - (1 - massUpper))
-  #       upper <- limits[limitX, 2]
-  #       
-  #     }
-  #     
-  #     return(Intervals(c(lower, upper)))
-  #     
-  #   }else{
-      
-      # grid search adapted from the selectiveInference package
+  # grid search adapted from the selectiveInference package
   
   limitsX <- which(limits[,2] > meanEst & limits[,1] < meanEst)
   
-  xg = seq(-100*sd, 100*sd, length = gridpts)
-  fun = function(x) { 
-    tnorm.surv(z = meanEst, mean = x, sd = sd, 
-               a = limits[limitsX, 1],
-               b = limits[limitsX, 2]) }
+  xg = seq(-range * sd, range * sd, length = gridpts)
+  
+  if(nrow(limits)==1){
+
+    fun = function(x) { 
+      tnorm.surv(z = meanEst, mean = x, sd = sd, 
+                 a = limits[limitsX, 1],
+                 b = limits[limitsX, 2]) }
+        
+  }else{
+  
+    fun = function(x) { 
+      mult_tnorm_surv(x = meanEst, mean = x, sd = sd, 
+                      limits = limits, twosided = FALSE) }
+  
+  }
   
   int = grid.search(xg, fun, alpha/2, 1-alpha/2, 
                     gridpts, griddepth)
-  
-  # if(sign(meanEst)==-1) int <- -1*rev(int)
-  
+
   return(Intervals(int))
       
-  #   }
-  #   
-  # }else{
-  #   
-  #   warning("Can not create one connected confidence interval with ", 1-alpha, " coverage property.\n", 
-  #           "Returned interval has ", round(thisCov, 4), " coverage.")
-  #   return(limits[limitX,])
-  #   
-  # }
+
 }

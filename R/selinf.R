@@ -5,6 +5,7 @@
 #' @param y response vector
 #' @param sd standard deviation of error used for the p-value calculation (see details)
 #' @param alpha value for \code{(1-alpha)}-confidence interval construction. Defaults to \code{0.05}.
+#' @param ... options passed to \code{\link{ci_tnorm}}.
 #' 
 #' @description This function takes an \code{limitObject}, which is produced by the 
 #' \code{\link{calculate_limits}} (or a list of \code{limitObject}s) and calculates
@@ -88,7 +89,7 @@
 #' @export
 #' @importFrom stats anova logLik model.matrix pchisq pnorm qf resid
 #'
-calculate_selinf <- function(limitObject, y, sd, alpha = 0.05)
+calculate_selinf <- function(limitObject, y, sd, alpha = 0.05, ...)
 {
   
   if(class(limitObject) != "limitObject"){
@@ -122,7 +123,7 @@ calculate_selinf <- function(limitObject, y, sd, alpha = 0.05)
                                   limits = limits)
       
       int <- ci_tnorm(meanEst = mu, sd = this_sd, 
-                      limits = limits, alpha = alpha)
+                      limits = limits, alpha = alpha, ...)
       
       lowLim[j] <- int[[1]]
       upLim[j] <- int[[2]]

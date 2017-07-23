@@ -172,6 +172,8 @@ calculate_selinf <- function(limitObject, y, sd, alpha = 0.05, ...)
 #' Defaults to \code{1} (testing one parameter at a time).
 #' @param sd standard deviation of error used for the p-value calculation (see details)
 #' @param alpha value for \code{(1-alpha)}-confidence interval construction. Defaults to \code{0.05}.
+#' @param gridpts,griddepth,range options for the calculation of confidence intervals. 
+#' See \code{\link{ci_tnorm}} for more details.
 #' 
 #' @description This is a wrapper and convenience function for several functions included in this package. 
 #' Please see \code{\link{calculate_selinf}} for more details and how to calculate inference when
@@ -217,10 +219,11 @@ calculate_selinf <- function(limitObject, y, sd, alpha = 0.05, ...)
 #' sd = summary(cpus.lm2)$sigma)
 #'
 selinf <- function(listOfModels, ...,
-                           response = NULL, 
-                           what,
-                           REML = FALSE, df = 1, 
-                           sd, alpha = 0.05)
+                   response = NULL, 
+                   what,
+                   REML = FALSE, df = 1, 
+                   sd, alpha = 0.05, 
+                   gridpts = 500, griddepth = 3, range = 100)
 {
   
   stopifnot(is.list(listOfModels))
@@ -283,6 +286,9 @@ selinf <- function(listOfModels, ...,
     
   }
   
-  calculate_selinf(limitObject = limits, y = response, sd = sd, alpha = alpha)
+  calculate_selinf(limitObject = limits, y = response, 
+                   sd = sd, alpha = alpha,
+                   gridpts = gridpts, griddepth = griddepth, 
+                   range = range)
   
 }

@@ -1,44 +1,65 @@
-mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
+mult_tnorm_surv <- function(x, mean, sd, limits, twosided = TRUE)
 {
   
   limits <- limits[order(limits[,1]),]
   pnormstd <- function(x) pnorm((x - mean)/sd)
   limitX <- which(limits[,2] > x & limits[,1] < x)
   
-  denom <- sapply(1:nrow(limits), function(i) 
-    pnormstd(limits[i,2]) - pnormstd(limits[i,1]))
-  if(!is.null(dim(denom))) denom <- apply(denom, 1, sum)
-  
-  if(lower){
+  # allow for multiple means
+  if(length(mean)==1)
+  {
     
-    limitXa <- limits[limitX,1]
-    massSmallerXa <- if(limitX!=1) 
-      sum(sapply(1:(limitX-1), function(i) 
-        pnormstd(limits[i,2]) - pnormstd(limits[i,1]))) else 0
-    
-    nom <- pnormstd(x) - (massSmallerXa + pnormstd(limitXa))
+    denom <- 
+      sum(sapply(1:nrow(limits), function(i) 
+        pnormstd(limits[i,2]) - pnormstd(limits[i,1])))
     
   }else{
     
-    limitXb <- limits[limitX,2]
+    denom <- sapply(1:nrow(limits), function(i) 
+      pnormstd(limits[i,2]) - pnormstd(limits[i,1]))
+    denom <- apply(denom, 1, sum)
+    
+  }
+  
+  limitXb <- limits[limitX,2]
+  
+  if(length(mean)==1)
+  {
+    
     massLargerXb <- if(nrow(limits)>limitX) 
       sum(sapply((limitX+1):nrow(limits), function(i) 
         pnormstd(limits[i,2]) - pnormstd(limits[i,1]))) else 0
     
-    nom <- (massLargerXb + pnormstd(limitXb)) - pnormstd(x)
+  }else{
+    
+    if(nrow(limits)>limitX)
+    {
+      
+      massLargerXb <- sapply((limitX+1):nrow(limits), function(i) 
+        pnormstd(limits[i,2]) - pnormstd(limits[i,1]))
+      massLargerXb <- apply(massLargerXb, 1, sum)
+      
+    }else{
+      
+      massLargerXb <- rep(0, length(mean))
+      
+    }
     
   }
+  
+  nom <- (massLargerXb + pnormstd(limitXb)) - pnormstd(x)
   
   this_pval <- nom / denom
   this_pval[is.nan(this_pval) & mean < x] <- 0
   this_pval[is.nan(this_pval) & mean > x] <- 1
   
-  if(all(is.na(this_pval) | is.nan(this_pval)) & !lower)
+  if(all(is.na(this_pval) | is.nan(this_pval)))
     this_pval <- bryc.tnorm.surv(z = x, sd = sd, 
                                  a = limits[limitX,1], 
                                  b = limits[limitX,2])
   
-  if(twosided) this_pval <- sapply(this_pval, function(x) 2*min(c(x, 1-x)))
+  if(twosided) this_pval <- sapply(this_pval, 
+                                   function(x) 2*min(c(x, 1-x)))
   
   return(this_pval)
   
@@ -76,7 +97,8 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
 #' @importFrom msm qtnorm
 #' @export
 #' 
-ci_tnorm <- function(meanEst, sd, limits, alpha, gridpts = 500, griddepth = 3, range = 100)
+ci_tnorm <- function(meanEst, sd, limits, alpha, 
+                     gridpts = 500, griddepth = 3, range = 100)
 {
   
   # grid search adapted from the selectiveInference package
@@ -86,24 +108,24 @@ ci_tnorm <- function(meanEst, sd, limits, alpha, gridpts = 500, griddepth = 3, r
   xg = seq(-range * sd, range * sd, length = gridpts)
   
   if(nrow(limits)==1){
-
+    
     fun = function(x) { 
       tnorm.surv(z = meanEst, mean = x, sd = sd, 
                  a = limits[limitsX, 1],
                  b = limits[limitsX, 2]) }
-        
+    
   }else{
-  
+    
     fun = function(x) { 
       mult_tnorm_surv(x = meanEst, mean = x, sd = sd, 
                       limits = limits, twosided = FALSE) }
-  
+    
   }
   
   int = grid.search(xg, fun, alpha/2, 1-alpha/2, 
                     gridpts, griddepth)
-
+  
   return(Intervals(int))
-      
-
+  
+  
 }

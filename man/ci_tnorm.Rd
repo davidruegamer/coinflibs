@@ -4,7 +4,8 @@
 \alias{ci_tnorm}
 \title{Calculate confidence interval for truncated normal variable}
 \usage{
-ci_tnorm(meanEst, sd, limits, alpha, gridpts = 200, griddepth = 3)
+ci_tnorm(meanEst, sd, limits, alpha, gridpts = 500, griddepth = 3,
+  range = 100)
 }
 \arguments{
 \item{meanEst}{mean}
@@ -17,6 +18,8 @@ ci_tnorm(meanEst, sd, limits, alpha, gridpts = 200, griddepth = 3)
 
 \item{gridpts, griddepth}{parameters for grid search used in the confidence interval
 function of the package \code{selectiveInference}.}
+
+\item{range}{gives the range \code{range*sd}, in which the quantile values are searched}
 }
 \description{
 Calculate confidence interval for truncated normal variable

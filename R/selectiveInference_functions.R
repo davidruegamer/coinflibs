@@ -158,19 +158,22 @@ ff <- function(z) {
            (z^3*sqrt(2*pi)+14.38718147*z*z+31.53531977*z+2*12.77436324))
 }
 
+# calculation via Rmpfr is commented out in order to 
+# prevent warnings when checking the package
+
 mpfr.tnorm.surv <- function(z, mean=0, sd=1, a, b, bits=NULL) {
   # If bits is not NULL, then we are supposed to be using Rmpf
   # (note that this was fail if Rmpfr is not installed; but
   # by the time this function is being executed, this should
   # have been properly checked at a higher level; and if Rmpfr
   # is not installed, bits would have been previously set to NULL)
-  if (!is.null(bits)) {
-    z = Rmpfr::mpfr((z-mean)/sd, precBits=bits)
-    a = Rmpfr::mpfr((a-mean)/sd, precBits=bits)
-    b = Rmpfr::mpfr((b-mean)/sd, precBits=bits)
-    return(as.numeric((Rmpfr::pnorm(b)-Rmpfr::pnorm(z))/
-                        (Rmpfr::pnorm(b)-Rmpfr::pnorm(a))))
-  }
+  # if (!is.null(bits)) {
+  #   z = Rmpfr::mpfr((z-mean)/sd, precBits=bits)
+  #   a = Rmpfr::mpfr((a-mean)/sd, precBits=bits)
+  #   b = Rmpfr::mpfr((b-mean)/sd, precBits=bits)
+  #   return(as.numeric((Rmpfr::pnorm(b)-Rmpfr::pnorm(z))/
+  #                       (Rmpfr::pnorm(b)-Rmpfr::pnorm(a))))
+  # }
   
   # Else, just use standard floating point calculations
   z = (z-mean)/sd

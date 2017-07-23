@@ -4,7 +4,7 @@
 \alias{calculate_selinf}
 \title{Calculate p-values / confidence intervals after likelihood-based or test-based model selection}
 \usage{
-calculate_selinf(limitObject, y, sd, alpha = 0.05)
+calculate_selinf(limitObject, y, sd, alpha = 0.05, ...)
 }
 \arguments{
 \item{limitObject}{either an object of \code{class} \code{limitObject} (the result of the
@@ -15,6 +15,8 @@ calculate_selinf(limitObject, y, sd, alpha = 0.05)
 \item{sd}{standard deviation of error used for the p-value calculation (see details)}
 
 \item{alpha}{value for \code{(1-alpha)}-confidence interval construction. Defaults to \code{0.05}.}
+
+\item{...}{options passed to \code{\link{ci_tnorm}}.}
 }
 \description{
 This function takes an \code{limitObject}, which is produced by the 

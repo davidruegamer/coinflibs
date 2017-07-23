@@ -5,7 +5,8 @@ mult_tnorm_surv <- function(x, mean, sd, limits, lower = FALSE, twosided = TRUE)
   pnormstd <- function(x) pnorm((x - mean)/sd)
   limitX <- which(limits[,2] > x & limits[,1] < x)
   
-  denom <- sapply(1:nrow(limits), function(i) pnormstd(limits[i,2]) - pnormstd(limits[i,1]))
+  denom <- sapply(1:nrow(limits), function(i) 
+    pnormstd(limits[i,2]) - pnormstd(limits[i,1]))
   if(!is.null(dim(denom))) denom <- apply(denom, 1, sum)
   
   if(lower){

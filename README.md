@@ -59,7 +59,7 @@ selinf( # supply all lists of visited models, where the best model in the
 
 ## Example: Combining models visited during stepwise AIC
 
-```
+```R
 # install and load package
 install_github("davidruegamer/coinflibs")
 library("coinflibs")

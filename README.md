@@ -9,6 +9,7 @@ Please see https://arxiv.org/abs/1706.09796 for more details.
  
 ```R
 # install and load package
+library("devtools")
 install_github("davidruegamer/coinflibs")
 library("coinflibs")
 
@@ -61,6 +62,7 @@ selinf( # supply all lists of visited models, where the best model in the
 
 ```R
 # install and load package
+library("devtools")
 install_github("davidruegamer/coinflibs")
 library("coinflibs")
 

@@ -20,24 +20,29 @@ extract_testvec <- function(limo)
 {
   
   X <- model.matrix(limo)
+  if(ncol(X)==0) return(list())
   ass <- limo$assign
-  rlass <- rle(ass)
-  rll <- rlass$lengths
-  rlv <- rlass$values + 1
-  singles <- rlv[rll==1]
-  singlesCol <- (1:ncol(X))[sapply(ass+1, function(i) i %in% singles)]
-  facs <- rlv[rll>1]
-  facsCol <- lapply(facs, function(id) which(ass+1 == id))
-  vT <- lapply(singlesCol, function(j) (solve(crossprod(X))%*%t(X))[j,,drop=F])
-  Xgtilde <- lapply(facsCol, function(j){
-    
-    Xj <- X[, j]
-    Xminusj <- svd(X[, -j, drop=FALSE])$u
-    Xj - tcrossprod(Xminusj) %*% Xj
-    
-  })
-  vecs <- c(vT, Xgtilde) 
-  vecs <- vecs[order(c(singles,facs))]
+  if(is.null(ass)){
+    vecs <- lapply(1:ncol(X), function(j) (solve(crossprod(X))%*%t(X))[j,,drop=F])
+  }else{
+    rlass <- rle(ass)
+    rll <- rlass$lengths
+    rlv <- rlass$values + 1
+    singles <- rlv[rll==1]
+    singlesCol <- (1:ncol(X))[sapply(ass+1, function(i) i %in% singles)]
+    facs <- rlv[rll>1]
+    facsCol <- lapply(facs, function(id) which(ass+1 == id))
+    vT <- lapply(singlesCol, function(j) (solve(crossprod(X))%*%t(X))[j,,drop=F])
+    Xgtilde <- lapply(facsCol, function(j){
+      
+      Xj <- X[, j]
+      Xminusj <- svd(X[, -j, drop=FALSE])$u
+      Xj - tcrossprod(Xminusj) %*% Xj
+      
+    })
+    vecs <- c(vT, Xgtilde) 
+    vecs <- vecs[order(c(singles,facs))]
+  }
   nam <- attr(limo$terms, "term.labels")
   if("(Intercept)"%in%colnames(X)) nam <- c("(Intercept)", nam)
   names(vecs) <- nam

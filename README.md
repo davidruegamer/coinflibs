@@ -137,10 +137,6 @@ calculate_selinf(limitObject = listOfLimits,
 # now do that with the function provided in the package
 ########################################################
 
-# Fit initial model
-cpus$perf <- log10(cpus$perf)
-cpus$cach <- as.factor(cpus$cach)
-cpus$name <- NULL
 currentmod <- lm(perf ~ 1, data = cpus)
 
 res <- forwardAIC_adjustedInference(yname = "perf",

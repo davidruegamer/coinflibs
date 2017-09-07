@@ -58,7 +58,7 @@ selinf( # supply all lists of visited models, where the best model in the
       )
 ```
 
-## Example: Combining models visited during stepwise AIC
+## Example: Combining models visited during stepwise AIC search
 
 ```R
 # install and load package
@@ -132,5 +132,26 @@ listOfLimits <- lapply(listOfComps, function(lom)
 calculate_selinf(limitObject = listOfLimits,
                  y = cpus$perf, 
                  sd = sigma(currentmod))
+                 
+########################################################
+# now do that with the function provided in the package
+########################################################
+
+#' library(MASS)
+# use the cpus data
+data("cpus")
+
+# Fit initial model
+cpus$perf <- log10(cpus$perf)
+cpus$cach <- as.factor(cpus$cach)
+cpus$name <- NULL
+currentmod <- lm(perf ~ 1, data = cpus)
+
+res <- forwardAIC_adjustedInference(yname = "perf",
+                                    data = cpus,
+                                    mod = currentmod,
+                                    var = NULL)
+                 
+res$inf                 
 
 ```

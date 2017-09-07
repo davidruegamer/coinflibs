@@ -157,7 +157,26 @@
 #'                  y = cpus$perf, 
 #'                  sd = sigma(currentmod))
 #'                  
+#' ########################################################
+#' # now do that with the function provided in the package
+#' ########################################################
+#' 
+#' #' library(MASS)
+#' # use the cpus data
+#' data("cpus")
 #'
+#' # Fit initial model
+#' cpus$perf <- log10(cpus$perf)
+#' cpus$cach <- as.factor(cpus$cach)
+#' cpus$name <- NULL
+#' currentmod <- lm(perf ~ 1, data = cpus)
+#' 
+#' res <- forwardAIC_adjustedInference(yname = "perf",
+#'                                     data = cpus,
+#'                                     mod = currentmod,
+#'                                     var = NULL)
+#'                  
+#' res$inf
 #'
 #' @export
 #' @importFrom stats anova logLik model.matrix pchisq pnorm qf resid

@@ -5,7 +5,7 @@
 \title{Calculate p-values / confidence intervals after likelihood-based or test-based model selection}
 \usage{
 selinf(listOfModels, ..., response = NULL, what, REML = FALSE, df = 1, sd,
-  alpha = 0.05)
+  alpha = 0.05, gridpts = 500, griddepth = 3, range = 100)
 }
 \arguments{
 \item{listOfModels}{a \code{list} of models representing one comparison}
@@ -29,6 +29,9 @@ Defaults to \code{1} (testing one parameter at a time).}
 \item{sd}{standard deviation of error used for the p-value calculation (see details)}
 
 \item{alpha}{value for \code{(1-alpha)}-confidence interval construction. Defaults to \code{0.05}.}
+
+\item{gridpts, griddepth, range}{options for the calculation of confidence intervals. 
+See \code{\link{ci_tnorm}} for more details.}
 }
 \description{
 This is a wrapper and convenience function for several functions included in this package. 

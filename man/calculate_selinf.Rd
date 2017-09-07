@@ -98,4 +98,96 @@ res <- calculate_selinf(limitObject = list(limitsAIC, limitsLRT),
 cbind(res, unadjusted_pval = unadj_pvs)
 
 
+#########################################################
+### Another example for a forward stepwise AIC search ###
+#########################################################
+
+library(MASS)
+# use the cpus data
+data("cpus")
+
+# Fit initial model
+cpus$perf <- log10(cpus$perf)
+cpus$cach <- as.factor(cpus$cach)
+cpus$name <- NULL
+currentmod <- lm(perf ~ 1, data = cpus)
+
+# make a stepwise AIC-based forward search
+# for all variables in the pool of possible covariates
+varsInPool <- colnames(cpus)[-7]
+
+# since the stepAIC function does not provide the models
+# fitted in each step, we have to do the search 'manually'
+improvement <- TRUE
+listOfModelComps <- list() 
+
+# do the forward stepwise AIC search...
+while(improvement & length(varsInPool)>0){
+
+ # compute all other models
+ allOtherMods <- lapply(varsInPool, function(thisvar) 
+                        update(currentmod, as.formula(paste0(". ~ . + ", thisvar))))
+                        
+ # store all models that were examined in this step  
+ listOfModels <- append(allOtherMods, list(currentmod))
+ # save this list for later
+ listOfModelComps <- append(listOfModelComps, list(listOfModels))
+ 
+ # check the AIC of all models
+ aics <- sapply(listOfModels, AIC)
+ # what is the best model?
+ (wmaic <- which.min(aics))
+ # is there any improvement?
+ if(wmaic == length(listOfModels)) improvement <- FALSE
+ # redefine the current (best) model
+ currentmod <- listOfModels[[wmaic]]
+ # and update the variables available
+ varsInPool <- varsInPool[-wmaic]
+
+}
+
+# variables left, which did not improve the model
+varsInPool
+# the final model call
+currentmod$call
+
+# get the test vector from the current model
+vTs <- extract_testvec(limo = currentmod)
+
+# extract list of model components in each step when comparisons
+# are done based on the AIC
+listOfComps <- lapply(listOfModelComps, function(lom) 
+ extract_components(listOfModels = lom, response = cpus$perf, what = "aic"))
+ 
+# calculate the truncation limits for each of the comparisons in each iteration
+listOfLimits <- lapply(listOfComps, function(lom) 
+  calculate_limits(comps = lom, vTs = vTs))
+  
+# now compute selective inference, which adjust for the forward stepwise AIC search 
+# by supplying the lists of limits
+calculate_selinf(limitObject = listOfLimits,
+                 y = cpus$perf, 
+                 sd = sigma(currentmod))
+                 
+########################################################
+# now do that with the function provided in the package
+########################################################
+
+#' library(MASS)
+# use the cpus data
+data("cpus")
+
+# Fit initial model
+cpus$perf <- log10(cpus$perf)
+cpus$cach <- as.factor(cpus$cach)
+cpus$name <- NULL
+currentmod <- lm(perf ~ 1, data = cpus)
+
+res <- forwardAIC_adjustedInference(yname = "perf",
+                                    data = cpus,
+                                    mod = currentmod,
+                                    var = NULL)
+                 
+res$inf
+
 }

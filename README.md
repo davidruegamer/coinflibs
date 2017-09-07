@@ -137,10 +137,6 @@ calculate_selinf(limitObject = listOfLimits,
 # now do that with the function provided in the package
 ########################################################
 
-#' library(MASS)
-# use the cpus data
-data("cpus")
-
 # Fit initial model
 cpus$perf <- log10(cpus$perf)
 cpus$cach <- as.factor(cpus$cach)
